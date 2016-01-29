@@ -1,6 +1,6 @@
-/***********************\
+/************************\
   CONTROLLABLE CHARACTER
-\***********************/
+\************************/
 
 function Guy(xIn, yIn) {
 	this.x = xIn;
@@ -21,8 +21,8 @@ function Guy(xIn, yIn) {
 
 	//Bounding box co-ordinates
 	this.edge = {
-		left : 20,
-		right: 76,
+		left : 30,
+		right: 65,
 		bottom : 90
 	};
 
@@ -42,11 +42,11 @@ function Guy(xIn, yIn) {
 	Guy.prototype.step = function() {
 		//Check if on ground
 		this.onGround = false;
-		for (var i = 0; i < boundarys.length; i ++) {
+		for (var i = 0; i < Level.boundarys.length; i ++) {
 			if (getCollPoint(	this.x + ((this.edge.left + this.edge.right) / 2), this.y + this.edge.bottom, 
 								this.x + ((this.edge.left + this.edge.right) / 2), this.y + this.edge.bottom + 1,
-								boundarys[i].x0,                                   boundarys[i].y0,
-								boundarys[i].x1,								   boundarys[i].y1				 ).x !== -1) {
+								Level.boundarys[i].x0,                             Level.boundarys[i].y0,
+								Level.boundarys[i].x1,							   Level.boundarys[i].y1		 ).x !== -1) {
 				this.onGround = true;
 				break;
 			} 
@@ -55,9 +55,9 @@ function Guy(xIn, yIn) {
 		//Check if climbing
 		if (this.climb || kb.press === 'up' || kb.press === 'down') {
 			this.climb = false;
-			for (var i = 0; i < ladders.length; i += 1) {
-				if (this.x + this.edge.right > ladders[i].left && this.x + this.edge.left < ladders[i].right &&
-					this.y < ladders[i].bottom && this.y + this.edge.bottom > ladders[i].top) {
+			for (var i = 0; i < Level.ladders.length; i += 1) {
+				if (this.x + this.edge.right > Level.ladders[i].left && this.x + this.edge.left < Level.ladders[i].right &&
+					this.y < Level.ladders[i].bottom && this.y + this.edge.bottom > Level.ladders[i].top) {
 					this.climb = true;
 					break;
 				}
@@ -104,7 +104,7 @@ function Guy(xIn, yIn) {
 			if (this.climb) {
 				this.vspeed = -3;
 			} else if (this.onGround) {
-				this.vspeed = -this.jumpHeight;
+				this.vspeed -= this.jumpHeight;
 			}
 		} else if (kb.down && this.climb) {
 			this.vspeed = 3;
@@ -122,29 +122,63 @@ function Guy(xIn, yIn) {
 		}
 
 		//Collision detection
-		var hPt = (this.hspeed > 0) ? this.x + this.edge.right : this.x + this.edge.left;
-		var vPt = (this.vspeed > 0) ? this.y + this.edge.bottom : this.y;
-		for (var i = 0; i < boundarys.length; i += 1) {
-			if (boundarys[i].type !== 'platform' || (this.vspeed > 0 && !this.climb)) {
-				var collPt = getCollPoint(hPt,             vPt,             hPt + (this.hspeed * dt), vPt + (this.vspeed * dt),
-								 		  boundarys[i].x0, boundarys[i].y0, boundarys[i].x1,          boundarys[i].y1		   );
-				if (collPt.x !== -1) {
-					var slope = Math.abs((boundarys[i].x1 - boundarys[i].x0) / (boundarys[i].y1 - boundarys[i].y0));
-					if (slope < 2) {
-						this.x = collPt.x - ((this.hspeed > 0) ? this.edge.right : this.edge.left);
-						this.hspeed = 0;
-					}
-					if (slope > 0.5) {
-						this.y = collPt.y - ((this.vspeed > 0) ? this.edge.bottom : 0);
-						this.vspeed = 0;
-					}
-				}
+		if (this.hspeed > 0) {
+			var hPt = this.x + this.edge.right;
+		} else if (this.hspeed < 0) {
+			var hPt = this.x + this.edge.left;
+		} else {
+			var hPt = this.x + ((this.edge.left + this.edge.right) / 2);
 		}
+		for (var i = 0; i < Level.boundarys.length; i += 1) {
+			var bo = Level.boundarys[i];
+			var vPt = this.y;
+			var collPt = getCollPoint(hPt, vPt, hPt + (this.hspeed * dt), vPt + (this.vspeed * dt), bo.x0, bo.y0, bo.x1, bo.y1);
+
+			if (collPt.x !== -1 && Level.boundarys[i].type !== 'platform') {
+				var slope = Math.abs((bo.x1 - bo.x0) / (bo.y1 - bo.y0));
+				if (slope < 2) {
+					this.x = collPt.x - ((this.hspeed > 0) ? this.edge.right : this.edge.left);
+					this.hspeed = 0;
+				}
+				if (slope > 0.5) {
+					this.y = collPt.y - ((this.vspeed > 0) ? this.edge.bottom : 0);
+					this.vspeed = 0;
+				}
+				break;
+			}
+
+			vPt = this.y + this.edge.bottom - 1;
+			collPt = getCollPoint(hPt, vPt, hPt + (this.hspeed * dt), vPt + (this.vspeed * dt), bo.x0, bo.y0, bo.x1, bo.y1);
+
+			if (collPt.x !== -1 && (bo.type !== 'platform' || (!this.climb && vPt + (this.vspeed * dt) > collPt.y))) {
+				var slope = Math.abs((bo.x1 - bo.x0) / (bo.y1 - bo.y0));
+				if (slope < 2) {
+					this.x = collPt.x - ((this.hspeed > 0) ? this.edge.right : this.edge.left);
+					this.hspeed = 0;
+				}
+				if (slope > 0.5) {
+					this.y = collPt.y - ((this.vspeed > 0) ? this.edge.bottom : 0);
+					this.vspeed = 0;
+				}
+				break;
+			}
 		}
 
 		//Implement Movement
 		this.x += this.hspeed * dt;
 		this.y += this.vspeed * dt;
+
+		//Draw Collision rays
+		/*debugCtx.lineWidth = 1;
+		debugCtx.strokeStyle = 'red';
+		debugCtx.beginPath()
+			debugCtx.moveTo(hPt + Level.x, this.y + Level.y);
+			debugCtx.lineTo(hPt + Level.x + (this.hspeed * dt), this.y + Level.y + (this.vspeed * dt));
+		debugCtx.stroke();
+		debugCtx.beginPath()
+			debugCtx.moveTo(hPt + Level.x, this.y + this.edge.bottom + Level.y);
+			debugCtx.lineTo(hPt + Level.x + (this.hspeed * dt), this.y + this.edge.bottom + Level.y + (this.vspeed * dt));
+		debugCtx.stroke();*/
 
 		//Set sprites
 		if (this.climb) {
@@ -155,5 +189,53 @@ function Guy(xIn, yIn) {
 		} else {
 			this.setSprite((this.vspeed < 0) ?	((this.rightFacing) ? this.sprites.jumpR : this.sprites.jumpL) :
 												((this.rightFacing) ? this.sprites.fallR : this.sprites.fallL));
+		}
+	}
+
+/******\
+  BOAT
+\******/
+
+function Boat(xIn, yIn) {
+	this.x = xIn;
+	this.y = yIn;
+	this.sprites = {
+		guyIn : new Sprite(Assets.sprites.boatIn, 276, 2000, true),
+		guyMount : new Sprite(Assets.sprites.boatMount, 264, 1500, true),
+		guyOut : new Sprite(Assets.sprites.boatOut, 276, 2000, true, true)
+	};
+	this.setSprite = setSprite;
+	this.setSprite(this.sprites.guyIn);
+	this.lamp = light.addSource(this.x + 215, this.y + 16, 100);
+	this.stage = 0;
+}
+	Boat.prototype.draw = function() {
+		this.spr.draw(this.x, this.y);
+	}
+
+	Boat.prototype.step = function() {
+		if (this.stage === 0) {
+			this.x += 1.5 * dt;
+			this.lamp.x += 1.5 * dt;
+			if (this.x > 1460 && Math.round(this.spr.frNum) === 5) {
+				this.stage = 1;
+				this.y -= 64;
+				this.setSprite(this.sprites.guyMount);
+			}
+		}
+		else if (this.stage === 1 && Math.round(this.spr.frNum) === 7) {
+			this.stage = 2;
+			gameObjs.pop();
+			gameObjs.push(new Guy(this.x + 42, this.y + 20));
+			gameObjs.push(this);
+			this.y += 64;
+			this.setSprite(this.sprites.guyOut);
+		}
+		else if (this.stage === 2) {
+			this.x -= 1.5 * dt;
+			this.lamp.x -= 1.5 * dt;
+			if (this.x < 400) {
+				gameObjs.pop();
+			}
 		}
 	}
