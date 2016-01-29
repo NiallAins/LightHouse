@@ -13,7 +13,6 @@ lightEngine = function(outputCan, outputCtx, bgShade) {
 	var ctx1 = can1.getContext('2d');
 
 	//Initiate working canvas two, for drawing light from a single source
-	//var can2 = document.createElement('canvas');
 	var can2 = document.createElement('canvas');
 	var ctx2 = can2.getContext('2d');
 
@@ -116,12 +115,10 @@ lightEngine = function(outputCan, outputCtx, bgShade) {
 						//No shadow if light source is inside object
 						var pixel = (((Math.floor(this.y) - B[i].y) * B[i].w) + (Math.floor(this.x) - B[i].x)) * 4;
 						if (this.x - B[i].x < B[i].w && this.x - B[i].x > -1 && pixel > -1 && pixel < imgData.length && imgData[pixel + 3] > 120) {
-							c.push({x : B[i].x, y : B[i].y});
-							c.push({x : B[i].x + (B[i].w / 2), y: B[i].y + (B[i].h / 2)});
-							c.push({x : B[i].x, y : B[i].y});
+
 						} else {
 							//Scan all opaque pixels to find largest and smallest angle with source relative to the normal definded above
-							var max = -Infinity, min = Infinity, ang = 0, maxP = {x : 0, y : 0}, minP = {x : 0, y : 0};
+							var max = -Infinity, min = Infinity, ang = 0, maxP = { x : 0, y : 0 }, minP = { x : 0, y : 0 };
 							for(var j = 3, x = 0, y = 0; j < imgData.length; j += 4, x += 1) {
 								//Reset x after each row scan
 								if (x === B[i].w) {
@@ -268,6 +265,8 @@ lightEngine = function(outputCan, outputCtx, bgShade) {
 
 	//Add light source to canvas (x position, y position, brightness [radius of light reach], shade [colour of light in rgb(a)]) -> source handle
 	this.addSource = function(x, y, b, s) {
+		x += Level.x;
+		y += Level.y;
 		b = typeof b !== 'undefined' ? b : 150;
 		s = typeof s !== 'undefined' ? s : 'rgba(0, 0, 0, 1)';
 		S.push(new Source(x, y, b, s));
@@ -278,6 +277,8 @@ lightEngine = function(outputCan, outputCtx, bgShade) {
 	//Add light blocker to canvas (x position, y position, object shape :"rect"/"anim"/"mask",
 	//						 	   rect width/mask opacity, rect height, rect opacity) -> block handle
 	this.addBlock = function(x, y, s, p1, p2, p3) {
+		x += Level.x;
+		y += Level.y;
 		if (s === "rect") {
 			var h, o;
 			if (typeof p3 === 'undefined') {
@@ -312,6 +313,8 @@ lightEngine = function(outputCan, outputCtx, bgShade) {
 	//Add region to canvas on which no shadows can be cast(x position, y position, region shape :"rect"/mask,
 	//						 							   rect width, rect height) -> no-cast handle
 	this.addNoCast = function(x, y, s, d1, d2) {
+		x += Level.x;
+		y += Level.y;
 		if (s === "rect") {
 			if (typeof d2 === 'undefined') {
 				Nc.push(new NoCast(x, y, s, d1, d1));
@@ -358,5 +361,16 @@ lightEngine = function(outputCan, outputCtx, bgShade) {
 
 	this.getNoCasts = function() {
 		return Nc;
+	}
+
+	this.moveLvl = function(dx, dy) {
+		for (var i = 0; i < B.length; i += 1) {
+			B[i].x += dx;
+			B[i].y += dy;
+		}
+		for (var i = 0; i < S.length; i += 1) {
+			S[i].x += dx;
+			S[i].y += dy;
+		}
 	}
 }
