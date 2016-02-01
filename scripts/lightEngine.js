@@ -140,40 +140,44 @@ lightEngine = function(outputCan, outputCtx, bgShade) {
 							ctx2.clearRect(0, 0, B[i].w + 1, B[i].h + 1);
 						}
 					}
-					//Calculate where shadow edges meet boundary of light
-					var ang = Math.atan2(c[c.length - 1].y - this.y, c[c.length - 1].x - this.x);
-					c.push({x : this.x + (this.b * 1.1 * Math.cos(ang)), y : this.y + (this.b * 1.1 * Math.sin(ang))});
-					ang = Math.atan2(c[c.length - 4].y - this.y, c[c.length - 4].x - this.x);
-					c.push({x : this.x + this.b * 1.1 * Math.cos(ang), y : this.y + this.b * 1.1 * Math.sin(ang)});
+					if (c.length > 0) {
+						//Calculate where shadow edges meet boundary of light
+						var ang = Math.atan2(c[c.length - 1].y - this.y, c[c.length - 1].x - this.x);
+						c.push({x : this.x + (this.b * 1.1 * Math.cos(ang)), y : this.y + (this.b * 1.1 * Math.sin(ang))});
+						ang = Math.atan2(c[c.length - 4].y - this.y, c[c.length - 4].x - this.x);
+						c.push({x : this.x + this.b * 1.1 * Math.cos(ang), y : this.y + this.b * 1.1 * Math.sin(ang)});
+					}
 				}
 			}
 
-			//Calcualte the shape of light on working canvas
-			//Draw shadows
-			ctx2.fillStyle = 'rgba(0, 0, 0, 1)';
-			ctx2.beginPath();
-				for (var i = 0, ang0, ang1, diff; i < c.length; i += 5) {
-					ctx2.moveTo(c[i].x, c[i].y);
-					ctx2.lineTo(c[i + 1].x, c[i + 1].y);
-					ctx2.lineTo(c[i + 2].x, c[i + 2].y);
-					ctx2.lineTo(c[i + 3].x, c[i + 3].y);
-					ang0 = Math.atan2(c[i + 3].y - this.y, c[i + 3].x - this.x);
-					ang1 = Math.atan2(c[i + 4].y - this.y, c[i + 4].x - this.x);
-					ctx2.arc(this.x, this.y, this.b, ang0, ang1, (angDiff(ang0, ang1) > 0) ? true : false);
-					ctx2.lineTo(c[i].x, c[i].y);
-				}
-			ctx2.fill();
+			if (c.length > 0) {
+				//Calcualte the shape of light on working canvas
+				//Draw shadows
+				ctx2.fillStyle = 'rgba(0, 0, 0, 1)';
+				ctx2.beginPath();
+					for (var i = 0, ang0, ang1, diff; i < c.length; i += 5) {
+						ctx2.moveTo(c[i].x, c[i].y);
+						ctx2.lineTo(c[i + 1].x, c[i + 1].y);
+						ctx2.lineTo(c[i + 2].x, c[i + 2].y);
+						ctx2.lineTo(c[i + 3].x, c[i + 3].y);
+						ang0 = Math.atan2(c[i + 3].y - this.y, c[i + 3].x - this.x);
+						ang1 = Math.atan2(c[i + 4].y - this.y, c[i + 4].x - this.x);
+						ctx2.arc(this.x, this.y, this.b, ang0, ang1, (angDiff(ang0, ang1) > 0) ? true : false);
+						ctx2.lineTo(c[i].x, c[i].y);
+					}
+				ctx2.fill();
 
-			//Subtract block shapes from shadow
-			ctx2.globalCompositeOperation = 'destination-out';
-			for (var i = 0; i < B.length; i++) {
-				if (B[i].active) {
-					B[i].subBlock();
+				//Subtract block shapes from shadow
+				ctx2.globalCompositeOperation = 'destination-out';
+				for (var i = 0; i < B.length; i++) {
+					if (B[i].active) {
+						B[i].subBlock();
+					}
 				}
-			}
-			//Subtract no-cast regions from shadow
-			for (var i = 0; i < Nc.length; i++) {
-				Nc[i].subRegion();
+				//Subtract no-cast regions from shadow
+				for (var i = 0; i < Nc.length; i++) {
+					Nc[i].subRegion();
+				}
 			}
 
 			//Draw Light emitting from source in circuler gradient, subtracting shadows

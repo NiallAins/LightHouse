@@ -2,7 +2,7 @@
   EVENT LISTENERS
 \*****************/
 
-//Stores state of keys
+//Stores state of keyboard
 var kb = {
 	space : false,
 	left : false,
@@ -13,6 +13,8 @@ var kb = {
 	a : false,
 	s : false,
 	d : false,
+	z : false,
+	shift : false,
 	press : null
 } 
 
@@ -46,6 +48,12 @@ window.onkeydown = function(e) {
    	} else if (key === 68) {
        kb.d = true;
        kb.press = "d";
+   	} else if (key === 90) {
+       kb.z = true;
+       kb.press = "z";
+   	} else if (key === 16) {
+       kb.shift = true;
+       kb.press = "shift";
    	}
 }
 
@@ -69,16 +77,22 @@ window.onkeyup = function(e) {
        kb.release = "space";
    	} else if (key === 87) {
        kb.w = false;
-       kb.press = "w";
+       kb.release = "w";
    	} else if (key === 65) {
        kb.a = false;
-       kb.press = "a";
+       kb.release = "a";
    	} else if (key === 83) {
        kb.s = false;
-       kb.press = "s";
+       kb.release = "s";
    	} else if (key === 68) {
        kb.d = false;
-       kb.press = "d";
+       kb.release = "d";
+   	} else if (key === 90) {
+       kb.z = false;
+       kb.release = "z";
+   	} else if (key === 16) {
+       kb.shift = false;
+       kb.release = "shift";
    	}
 }
 
@@ -89,8 +103,8 @@ window.onkeyup = function(e) {
 
 //Controls object sprite animation (sprite image source, width of single frame, duration of animation [in milliseconds])
 function Sprite(sprite, frWidth, duration, castShadow, reverse) {
-	this.reverse = reverse;
 	castShadow = false;
+	this.reverse = reverse;
 	this.frNum = 0;
 	this.frDur = duration;
 	this.shadow = castShadow;
@@ -116,14 +130,14 @@ function Sprite(sprite, frWidth, duration, castShadow, reverse) {
 		}
 		if (!this.pause) {
 			if (!this.reverse) {
-				this.frNum += (dt * 17) / this.frDur;
+				this.frNum += dt / this.frDur;
 				if (this.frNum >= this.length) {
 					this.frNum = 0;
 				}
 			} else {
-				this.frNum -= (dt * 17) / this.frDur;
+				this.frNum -= dt / this.frDur;
 				if (this.frNum < 0) {
-					this.frNum = this.length;
+					this.frNum = this.length - 1;
 				}
 			}
 		}
@@ -223,35 +237,45 @@ var Tiler = {
 	}
 }
 
-function drawBoundarys() {
+function drawDebug() {
 	ctx.save();
 		ctx.strokeStyle = 'rgba(255, 0, 0, 0.4)';
 		ctx.lineWidth = 5;
 		for (var i = 0; i < Level.boundarys.length; i += 1) {
+			var bo = Level.boundarys[i];
 			ctx.beginPath()
-				ctx.moveTo(Level.boundarys[i].x0 + Level.x, Level.boundarys[i].y0 + Level.y);
-				ctx.lineTo(Level.boundarys[i].x1 + Level.x, Level.boundarys[i].y1 + Level.y); 
+				ctx.moveTo(bo.x0 + Level.x, bo.y0 + Level.y);
+				ctx.lineTo(bo.x1 + Level.x, bo.y1 + Level.y); 
 			ctx.stroke();
-			if (Level.boundarys[i].type === 'platform') {
+			if (bo.type === 'platform') {
 				ctx.save();
 				ctx.strokeStyle = 'rgba(255, 255, 0, 0.3)';
 				ctx.lineWidth = 2;
 				ctx.beginPath()
-					ctx.moveTo(Level.boundarys[i].x0 + Level.x, Level.boundarys[i].y0 + Level.y + 2);
-					ctx.lineTo(Level.boundarys[i].x1 + Level.x, Level.boundarys[i].y1 + Level.y + 2); 
+					ctx.moveTo(bo.x0 + Level.x, bo.y0 + Level.y + 2);
+					ctx.lineTo(bo.x1 + Level.x, bo.y1 + Level.y + 2); 
 				ctx.stroke();
 				ctx.restore();
 			}
 		}
 		ctx.fillStyle = 'rgba(0, 255, 0, 0.4)';
 		for (var i = 0; i < Level.ladders.length; i += 1) {
-			ctx.fillRect(Level.ladders[i].left  + Level.x,				 Level.ladders[i].top + Level.y,
-				         Level.ladders[i].right - Level.ladders[i].left, Level.ladders[i].bottom - Level.ladders[i].top);
+			var la = Level.ladders[i];
+			ctx.fillRect(la.left  + Level.x, la.top + Level.y, la.right - la.left, la.bottom - la.top);
 		}
-		ctx.fillStyle = 'rgba(0, 0, 255, 0.3)'
-		for (var i = 0; i < gameObjs.length; i += 1) {
-			ctx.fillRect(gameObjs[i].x + gameObjs[i].edge.left + Level.x, gameObjs[i].y + Level.y,
-						 gameObjs[i].edge.right - gameObjs[i].edge.left, gameObjs[i].edge.bottom);
+		if (typeof gameObjs.guy !== 'undefined') {
+			var g = gameObjs.guy;
+			ctx.fillStyle = 'rgba(0, 0, 255, 0.3)'
+			ctx.fillRect(g.x + g.edge.left + Level.x, g.y + Level.y,
+							 g.edge.right - g.edge.left, g.edge.bottom);
+
+			if (g.hspeed > 0) {
+				var hPt = g.x + g.edge.right;
+			} else if (g.hspeed < 0) {
+				var hPt = g.x + g.edge.left;
+			} else {
+				var hPt = g.x + ((g.edge.left + g.edge.right) / 2);
+			}
 		}
 	ctx.restore();
 }
@@ -272,6 +296,7 @@ var Assets = {
 		boatIn : "sprites/boat.png",
 		boatMount : "sprites/dock_mount.png",
 		boatOut : "sprites/boat_noguy.png",
+		gate : "sprites/gate.png"
 	},
 	tiles : {
 		sea : "backgrounds/seaTile2.png"
@@ -325,48 +350,66 @@ var loadAssets = function() {
 
 //Frame timing variables
 var time = 0, oldTime = new Date().getTime(), dt = 1;
-var debugMove = false;
+
+//For debuging
+var debugMode = false, stopLoop = false;
 
 //Animation and Gameplay loop
 function mainLoop() {
-	//Frame Timing (dt = fraction of 60FPS game is running)
+	//Toggle debug mode
+	if (kb.press === "shift") {
+		debugMode = !debugMode;
+		if (debugMode) {
+			can.style.border = '2px solid red';
+			debug.innerHTML = 'DEBUG MODE : WASD - Move View, SPACE - frame increment mode, Down - increment frame';
+		} else {
+			debug.innerHTML = 'D-Keys - Move, Z - Open Gate, Shift - Debug Mode<br /> <a href = "https://github.com/NiallAins/LightHouse"> View on GitHub... </a>';
+			can.style.border = 'none';
+		}
+	}
+
+	//Frame Timing (dt clamped at ~30 FPS)
 	time = new Date().getTime();
 	dt = (time - oldTime);
-	/*while (dt < 30) {
+	while (dt < 25) {
 		time = new Date().getTime();
 		dt = (time - oldTime);
-	}*/
+	}
 	oldTime = time;
-	dt /= 17;
 
 	//DEBUG - Move game level
-	if (kb.a) {
-		moveLvl(10, 0);
-		debugMove = true;
-	} else if (kb.d) {
-		moveLvl(-10, 0);
-		debugMove = true;
-	}
-	if (kb.w) {
-		moveLvl(0, 10);
-		debugMove = true;
-	} else if (kb.s) {
-		moveLvl(0, -10);
-		debugMove = true;
+	if (debugMode) {
+		debugCtx.clearRect(0, 0, can.width, can.height);
+		if (kb.a) {
+			moveLvl(20, 0);
+		} else if (kb.d) {
+			moveLvl(-20, 0);
+		}
+		if (kb.w) {
+			moveLvl(0, 20);
+		} else if (kb.s) {
+			moveLvl(0, -20);
+		}
+		if (kb.press === "space") {
+			stopLoop = !stopLoop;
+		}
 	}
 
 	//Refresh and draw frame
 	ctx.clearRect(0, 0, can.width, can.height);
-	debugCtx.clearRect(0, 0, can.width, can.height);
-	for (var i = 0; i < gameObjs.length; i += 1) {
-		gameObjs[i].step();
+	if (!stopLoop || kb.press === "down") {
+		for (obj in gameObjs) {
+			gameObjs[obj].step();
+		}
 	}
-	for (var i = 0; i < gameObjs.length; i += 1) {
-		gameObjs[i].draw();
+	for (obj in gameObjs) {
+		gameObjs[obj].draw();
 	}
 	Tiler.draw();
 
-	//drawBoundarys();
+	if (debugMode) {
+		drawDebug();
+	}
 
 	//Reset Keyboard listener
 	kb.press = null;
